@@ -9,7 +9,7 @@ from torch.nn import functional as F
 from torchvision.ops import StochasticDepth
 
 from flash_attn.modules.mha import MHA
-from flash_attn.modules.mlp import Mlp
+from flash_attn.modules.mlp import MLP
 
 try:
     from flash_attn.functional.layer_norm import dropout_add_layer_norm
@@ -68,7 +68,7 @@ class Block(nn.Module):
         if mixer_cls is None:
             mixer_cls = partial(MHA, num_heads=dim // 64)
         if mlp_cls is None:
-            mlp_cls = partial(Mlp, hidden_features=4 * dim)
+            mlp_cls = partial(MLP, hidden_features=4 * dim)
         self.mixer = mixer_cls(dim)
         self.dropout1 = dropout_cls(resid_dropout1)
         self.drop_path1 = StochasticDepth(drop_path1, mode="row")
@@ -264,7 +264,7 @@ class ParallelBlock(nn.Module):
         if mixer_cls is None:
             mixer_cls = partial(MHA, num_heads=dim // 64)
         if mlp_cls is None:
-            mlp_cls = partial(Mlp, hidden_features=4 * dim)
+            mlp_cls = partial(MLP, hidden_features=4 * dim)
         self.mixer = mixer_cls(dim)
         self.dropout1 = dropout_cls(resid_dropout1)
         self.norm1 = norm_cls(dim)

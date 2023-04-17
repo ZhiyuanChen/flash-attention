@@ -19,7 +19,7 @@ from flash_attn.models.opt import remap_state_dict_hf_opt
 from flash_attn.modules.block import Block, ParallelBlock
 from flash_attn.modules.embedding import GPT2Embeddings, ParallelGPT2Embeddings
 from flash_attn.modules.mha import MHA, ParallelMHA
-from flash_attn.modules.mlp import FusedMLP, Mlp, ParallelFusedMLP
+from flash_attn.modules.mlp import MLP, FusedMLP, ParallelFusedMLP
 from flash_attn.utils.distributed import all_gather_raw, sync_shared_params
 from flash_attn.utils.generation import GenerationMixin
 from flash_attn.utils.pretrained import state_dict_from_pretrained
@@ -119,7 +119,7 @@ def create_mlp_cls(config, layer_idx=None, process_group=None, device=None, dtyp
         else:
             approximate = "tanh" if config.activation_function in ["gelu_new", "gelu_fast", "gelu_approx"] else "none"
             activation = partial(F.gelu, approximate=approximate)
-        mlp_cls = partial(Mlp, hidden_features=inner_dim, activation=activation, **factory_kwargs)
+        mlp_cls = partial(MLP, hidden_features=inner_dim, activation=activation, **factory_kwargs)
     else:
         mlp_checkpoint_lvl = getattr(config, "mlp_checkpoint_lvl", 0)
         # mlp_checkpoint_lvl could be a list, which contains the checkpoint_lvl for each layer

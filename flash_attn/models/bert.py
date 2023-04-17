@@ -23,7 +23,7 @@ from flash_attn.functional.bert_padding import index_first_axis, index_first_axi
 from flash_attn.modules.block import Block
 from flash_attn.modules.embedding import BertEmbeddings
 from flash_attn.modules.mha import MHA
-from flash_attn.modules.mlp import FusedMLP, Mlp
+from flash_attn.modules.mlp import MLP, FusedMLP
 from flash_attn.utils.pretrained import state_dict_from_pretrained
 
 try:
@@ -69,7 +69,7 @@ def create_mlp_cls(config, layer_idx=None, return_residual=False):
     if not fused_mlp:
         approximate = "tanh" if config.hidden_act in ["gelu_new", "gelu_fast"] else "none"
         mlp_cls = partial(
-            Mlp,
+            MLP,
             hidden_features=inner_dim,
             activation=partial(F.gelu, approximate=approximate),
             return_residual=return_residual,

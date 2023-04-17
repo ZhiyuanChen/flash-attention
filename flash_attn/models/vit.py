@@ -14,10 +14,10 @@ from torch.nn import functional as F
 from torch.nn.init import trunc_normal_
 from torchvision.ops import StochasticDepth
 
-from flash_attn.layers.patch_embed import PatchEmbed
+from flash_attn.layers.patch_embed import PatchEmbedding
 from flash_attn.modules.block import Block
 from flash_attn.modules.mha import MHA
-from flash_attn.modules.mlp import FusedMLP, Mlp
+from flash_attn.modules.mlp import MLP, FusedMLP
 
 try:
     from flash_attn.functional.layer_norm import dropout_add_layer_norm
@@ -41,7 +41,7 @@ def create_mixer_cls(num_heads, qkv_bias, attn_drop, use_flash_attn, fused_bias_
 def create_mlp_cls(embed_dim, mlp_ratio, act_layer, fused_mlp):
     inner_dim = int(embed_dim * mlp_ratio)
     if not fused_mlp:
-        mlp_cls = partial(Mlp, hidden_features=inner_dim, activation=act_layer())
+        mlp_cls = partial(MLP, hidden_features=inner_dim, activation=act_layer())
     else:
         mlp_cls = partial(FusedMLP, hidden_features=inner_dim)
     return mlp_cls
@@ -119,7 +119,7 @@ class VisionTransformer(nn.Module):
         attn_drop_rate=0.0,
         drop_path_rate=0.0,
         weight_init="",
-        embed_layer=PatchEmbed,
+        embed_layer=PatchEmbedding,
         norm_layer=None,
         act_layer=None,
         use_flash_attn=False,
@@ -168,7 +168,7 @@ class VisionTransformer(nn.Module):
         self.num_prefix_tokens = 1 if class_token else 0
         self.no_embed_class = no_embed_class
 
-        patch_embed_extra_kwargs = {"fused_bias_fc": fused_bias_fc} if embed_layer is PatchEmbed else {}
+        patch_embed_extra_kwargs = {"fused_bias_fc": fused_bias_fc} if embed_layer is PatchEmbedding else {}
         self.patch_embed = embed_layer(
             img_size=img_size,
             patch_size=patch_size,

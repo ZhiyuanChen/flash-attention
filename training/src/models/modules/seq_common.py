@@ -215,7 +215,7 @@ class PositionalEncoding(nn.Module):
 
 
 # Adapted from https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/layers/mlp.py
-class Mlp(nn.Module):
+class MLP(nn.Module):
     """MLP as used in Vision Transformer, MLP-Mixer and related networks"""
 
     def __init__(
@@ -267,7 +267,7 @@ class MlpBig(nn.Module):
         device=None,
         dtype=None,
     ):
-        """Copied from Mlp above. If num_layers > 2, add more Mlp layers, doubling each time."""
+        """Copied from MLP above. If num_layers > 2, add more MLP layers, doubling each time."""
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
         out_features = out_features or in_features

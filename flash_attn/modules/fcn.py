@@ -87,7 +87,7 @@ class RowParallelLinear(nn.Linear):
         return reduce_fn(out, self.process_group)
 
 
-class Mlp(nn.Module):
+class MLP(nn.Module):
     def __init__(
         self,
         in_features,
