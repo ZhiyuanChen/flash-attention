@@ -5,7 +5,7 @@ import torch
 from einops import rearrange
 from torch.nn import functional as F
 
-from flash_attn.losses.cross_entropy import CrossEntropyLossApex
+from flash_attn.modules import CrossEntropyLossApex
 
 is_sm8x = torch.cuda.get_device_capability("cuda")[0] >= 8
 

@@ -1,11 +1,14 @@
 # Copyright (c) 2022, Tri Dao.
 # Adapted from https://github.com/NVIDIA/apex/blob/master/apex/contrib/layer_norm/layer_norm.py
 
-import dropout_layer_norm
 import torch
 from torch import nn
 from torch.autograd import Function
 
+try:
+    import dropout_layer_norm
+except ImportError:
+    dropout_layer_norm = None
 
 def _dropout_add_layer_norm_forward(
     x0, residual, gamma, beta, rowscale, colscale, dropout_p, epsilon, residual_in_fp32=False, is_rms_norm=False

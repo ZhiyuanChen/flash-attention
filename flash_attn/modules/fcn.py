@@ -203,7 +203,7 @@ class ParallelFusedMLP(nn.Module):
         hidden_features,
         out_features=None,
         activation="gelu_approx",
-        process_group: ProcessGroup = None,
+        process_group: dist.ProcessGroup = None,
         bias1=True,
         bias2=True,
         sequence_parallel=True,

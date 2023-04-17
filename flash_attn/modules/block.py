@@ -8,16 +8,16 @@ from torch import Tensor, nn
 from torch.nn import functional as F
 from torchvision.ops import StochasticDepth
 
-from flash_attn.modules.mha import MHA
-from flash_attn.modules.mlp import MLP
+from .flash_attention import MHA
+from .fcn import MLP
 
 try:
-    from flash_attn.functional.layer_norm import dropout_add_layer_norm
+    from flash_attn.functional import dropout_add_layer_norm
 except ImportError:
     dropout_add_layer_norm = None
 
 try:
-    from flash_attn.functional.layer_norm import dropout_add_layer_norm_parallel_residual
+    from flash_attn.functional import dropout_add_layer_norm_parallel_residual
 except ImportError:
     dropout_add_layer_norm_parallel_residual = None
 

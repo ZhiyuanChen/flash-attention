@@ -7,7 +7,6 @@ from functools import partial
 from typing import Optional
 
 # import fused_dense_cuda  # from apex
-import fused_dense_lib as fused_dense_cuda
 import torch
 from torch import Tensor
 from torch.autograd import Function
@@ -15,9 +14,13 @@ from torch.cuda.amp import custom_bwd, custom_fwd
 from torch.distributed import ProcessGroup
 from torch.nn import functional as F
 
-from flash_attn.functional.activations import gelu_bwd, relu_bwd, sqrelu_bwd, sqrelu_fwd
+from .activations import gelu_bwd, relu_bwd, sqrelu_bwd, sqrelu_fwd
 from flash_attn.utils.distributed import all_gather_raw, all_reduce_raw, reduce_scatter_raw
 
+try:
+    import fused_dense_lib as fused_dense_cuda
+except ImportError:
+    fused_dense_cuda = None
 
 class FusedDenseFunc(Function):
     @staticmethod

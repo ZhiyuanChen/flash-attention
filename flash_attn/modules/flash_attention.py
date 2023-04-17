@@ -4,8 +4,7 @@ import torch
 from einops import rearrange
 from torch import nn
 
-from flash_attn.functional.bert_padding import pad_input, unpad_input
-from flash_attn.functional.flash_attention import flash_attn_unpadded_qkvpacked
+from flash_attn.functional import flash_attn_unpadded_qkvpacked, pad_input, unpad_input
 
 
 class FlashAttention(nn.Module):
@@ -136,17 +135,17 @@ from torch import nn
 from torch.nn import functional as F
 
 try:
-    from flash_attn.functional.flash_attention import flash_attn_unpadded_kvpacked, flash_attn_unpadded_qkvpacked
+    from flash_attn.functional import flash_attn_unpadded_kvpacked, flash_attn_unpadded_qkvpacked
 except ImportError:
     flash_attn_unpadded_qkvpacked, flash_attn_unpadded_kvpacked = None, None
 
 try:
-    from flash_attn.functional.flash_attn_triton import flash_attn_kvpacked_func, flash_attn_qkvpacked_func
+    from flash_attn.functional import flash_attn_kvpacked_func, flash_attn_qkvpacked_func
 except ImportError:
     flash_attn_qkvpacked_func, flash_attn_kvpacked_func = None, None
 
 try:
-    from flash_attn.functional.fused_fcn import ColumnParallelLinear, FusedDense, RowParallelLinear
+    from flash_attn.functional import ColumnParallelLinear, FusedDense, RowParallelLinear
 except ImportError:
     FusedDense, ColumnParallelLinear, RowParallelLinear = None, None, None
 

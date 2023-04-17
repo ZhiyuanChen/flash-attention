@@ -16,26 +16,24 @@ from transformers import GPT2Config
 from flash_attn.models.gpt_neox import remap_state_dict_hf_gpt_neox
 from flash_attn.models.gptj import remap_state_dict_hf_gptj
 from flash_attn.models.opt import remap_state_dict_hf_opt
-from flash_attn.modules.block import Block, ParallelBlock
-from flash_attn.modules.embedding import GPT2Embeddings, ParallelGPT2Embeddings
-from flash_attn.modules.mha import MHA, ParallelMHA
-from flash_attn.modules.mlp import MLP, FusedMLP, ParallelFusedMLP
+from flash_attn.modules import (MHA, MLP, Block, FusedMLP, GPT2Embeddings, ParallelBlock, ParallelFusedMLP,
+                                ParallelGPT2Embeddings, ParallelMHA)
 from flash_attn.utils.distributed import all_gather_raw, sync_shared_params
 from flash_attn.utils.generation import GenerationMixin
 from flash_attn.utils.pretrained import state_dict_from_pretrained
 
 try:
-    from flash_attn.functional.fused_fcn import ColumnParallelLinear
+    from flash_attn.modules import ColumnParallelLinear
 except ImportError:
     ColumnParallelLinear = None
 
 try:
-    from flash_attn.functional.layer_norm import dropout_add_layer_norm
+    from flash_attn.functional import dropout_add_layer_norm
 except ImportError:
     dropout_add_layer_norm = None
 
 try:
-    from flash_attn.functional.layer_norm import dropout_add_layer_norm_parallel_residual
+    from flash_attn.functional import dropout_add_layer_norm_parallel_residual
 except ImportError:
     dropout_add_layer_norm_parallel_residual = None
 

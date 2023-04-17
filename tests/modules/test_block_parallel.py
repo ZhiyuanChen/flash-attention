@@ -11,9 +11,7 @@ from einops import rearrange
 from torch import nn
 from torch.nn import functional as F
 
-from flash_attn.modules.block import Block
-from flash_attn.modules.mha import MHA, ParallelMHA
-from flash_attn.modules.mlp import FusedMLP, ParallelFusedMLP
+from flash_attn.modules import MHA, Block, FusedMLP, ParallelFusedMLP, ParallelMHA
 from flash_attn.utils.distributed import allreduce_sequence_parallel_grad
 
 is_sm8x = torch.cuda.get_device_capability("cuda")[0] >= 8

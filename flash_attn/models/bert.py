@@ -19,7 +19,7 @@ from transformers import BertConfig
 from transformers.models.bert.modeling_bert import (BaseModelOutputWithPoolingAndCrossAttentions,
                                                     BertForPreTrainingOutput)
 
-from flash_attn.functional.bert_padding import index_first_axis, index_first_axis_residual, pad_input, unpad_input
+from flash_attn.functional import index_first_axis, index_first_axis_residual, pad_input, unpad_input
 from flash_attn.modules.block import Block
 from flash_attn.modules.embedding import BertEmbeddings
 from flash_attn.modules.mha import MHA
@@ -27,12 +27,12 @@ from flash_attn.modules.mlp import MLP, FusedMLP
 from flash_attn.utils.pretrained import state_dict_from_pretrained
 
 try:
-    from flash_attn.functional.fused_fcn import FusedDense
+    from flash_attn.modules import FusedDense
 except ImportError:
     FusedDense = None
 
 try:
-    from flash_attn.functional.layer_norm import dropout_add_layer_norm, layer_norm
+    from flash_attn.functional import dropout_add_layer_norm, layer_norm
 except ImportError:
     dropout_add_layer_norm, layer_norm = None, None
 

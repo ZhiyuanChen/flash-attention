@@ -1,12 +1,10 @@
 import math
 
-import hydra
 import torch
 from einops import rearrange
 from torch import nn
 
-from flash_attn.functional.bert_padding import index_first_axis, pad_input, unpad_input
-from flash_attn.functional.flash_blocksparse_attention import convert_blockmask, flash_blocksparse_attn
+from flash_attn.functional import convert_blockmask, flash_blocksparse_attn, index_first_axis, pad_input, unpad_input
 
 
 class FlashBlocksparseAttention(nn.Module):
@@ -24,7 +22,8 @@ class FlashBlocksparseAttention(nn.Module):
         self, sparsity_config, softmax_temp=None, attention_dropout=0.0, max_seq_length=2048, device=None, dtype=None
     ):
         super().__init__()
-        self.sparsity_config = hydra.utils.instantiate(sparsity_config)
+        self.sparsity_config = sparsity_config
+        # self.sparsity_config = hydra.utils.instantiate(sparsity_config)
         self.softmax_temp = softmax_temp
         self.dropout_p = attention_dropout
 

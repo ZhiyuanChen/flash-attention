@@ -8,7 +8,7 @@ from einops import rearrange
 from torch import nn
 from torch.nn import functional as F
 
-from flash_attn.modules.embedding import GPT2Embeddings, ParallelGPT2Embeddings
+from flash_attn.modules import GPT2Embeddings, ParallelGPT2Embeddings
 
 is_sm8x = torch.cuda.get_device_capability("cuda")[0] >= 8
 

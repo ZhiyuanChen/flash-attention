@@ -1,10 +1,14 @@
 from typing import Tuple
 
-import rotary_emb
 import torch
 from einops import rearrange, repeat
 from torch import nn
 from torch.autograd import Function
+
+try:
+    import rotary_emb
+except ImportError:
+    rotary_emb = None
 
 
 def rotate_half(x, interleaved=False):
@@ -86,7 +90,7 @@ class ApplyRotaryEmb(Function):
         return dx, None, None, None, None
 
 
-apply_rotary_emb_func = ApplyRotaryEmb.apply
+apply_rotary_emb = ApplyRotaryEmb.apply
 
 
 class ApplyRotaryEmbQKV_(Function):

@@ -1,7 +1,11 @@
 import torch
-import xentropy_cuda_lib
 from torch import distributed as dist
 from torch.autograd import Function
+
+try:
+    import xentropy_cuda_lib
+except ImportError:
+    xentropy_cuda_lib = None
 
 # `all_gather_into_tensor` and `reduce_scatter_tensor` are new placeholders for
 # `_all_gather_base` and `_reduce_scatter_base`. They require the most recent

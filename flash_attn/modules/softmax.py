@@ -17,9 +17,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from apex.transformer.enums import AttnMaskType
-from fused_softmax_lib import scaled_masked_softmax_get_batch_per_block
 from torch import nn
+
+try:
+    from apex.transformer.enums import AttnMaskType
+except ImportError:
+    AttnMaskType = None
+
+try:
+    from fused_softmax_lib import scaled_masked_softmax_get_batch_per_block
+except ImportError:
+    scaled_masked_softmax_get_batch_per_block = None
 
 
 class FusedScaleMaskSoftmax(nn.Module):

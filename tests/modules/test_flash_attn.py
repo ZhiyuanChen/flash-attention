@@ -6,10 +6,10 @@ import torch
 from einops import rearrange, repeat
 from torch.nn import functional as F
 
-from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input
-from flash_attn.flash_attn_interface import (_get_block_size, flash_attn, flash_attn_unpadded,
-                                             flash_attn_unpadded_kvpacked, flash_attn_unpadded_qkvpacked,
-                                             flash_attn_unpadded_qkvpacked_split)
+from flash_attn.functional import (flash_attn, flash_attn_unpadded, flash_attn_unpadded_kvpacked,
+                                   flash_attn_unpadded_qkvpacked, flash_attn_unpadded_qkvpacked_split, index_first_axis,
+                                   pad_input, unpad_input)
+from flash_attn.functional.flash_attention import _get_block_size
 
 try:
     from flash_attn.flash_attn_triton import flash_attn
