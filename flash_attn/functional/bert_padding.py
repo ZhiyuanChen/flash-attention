@@ -2,10 +2,11 @@
 
 import torch
 from einops import rearrange, repeat
+from torch.autograd import Function
 from torch.nn import functional as F
 
 
-class IndexFirstAxis(torch.autograd.Function):
+class IndexFirstAxis(Function):
     @staticmethod
     def forward(ctx, input, indices):
         ctx.save_for_backward(indices)
@@ -36,7 +37,7 @@ class IndexFirstAxis(torch.autograd.Function):
 index_first_axis = IndexFirstAxis.apply
 
 
-class IndexPutFirstAxis(torch.autograd.Function):
+class IndexPutFirstAxis(Function):
     @staticmethod
     def forward(ctx, values, indices, first_axis_dim):
         ctx.save_for_backward(indices)
@@ -60,7 +61,7 @@ class IndexPutFirstAxis(torch.autograd.Function):
 index_put_first_axis = IndexPutFirstAxis.apply
 
 
-class IndexFirstAxisResidual(torch.autograd.Function):
+class IndexFirstAxisResidual(Function):
     @staticmethod
     def forward(ctx, input, indices):
         ctx.save_for_backward(indices)

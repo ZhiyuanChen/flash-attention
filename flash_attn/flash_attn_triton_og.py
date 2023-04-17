@@ -9,10 +9,10 @@ This is a Triton implementation of the Flash Attention algorithm
 (see: Dao et al., https://arxiv.org/pdf/2205.14135v2.pdf; Rabe and Staats https://arxiv.org/pdf/2112.05682v2.pdf)
 """
 
-import pytest
 import torch
 import triton
 import triton.language as tl
+from torch.autograd import Function
 
 
 @triton.jit
@@ -245,7 +245,7 @@ def _bwd_kernel(
         tl.store(dk_ptrs, dk)
 
 
-class _attention(torch.autograd.Function):
+class _attention(Function):
     @staticmethod
     def forward(ctx, q, k, v, sm_scale):
         BLOCK = 128

@@ -25,7 +25,7 @@ from flash_attn.utils.generation import GenerationMixin
 from flash_attn.utils.pretrained import state_dict_from_pretrained
 
 try:
-    from flash_attn.functional.fused_dense import ColumnParallelLinear
+    from flash_attn.functional.fused_fcn import ColumnParallelLinear
 except ImportError:
     ColumnParallelLinear = None
 

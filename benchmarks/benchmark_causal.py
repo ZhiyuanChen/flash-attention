@@ -9,7 +9,7 @@ from torch.nn import functional as F
 # from flash_attn.triton.fused_attention import attention as attention
 from flash_attn.flash_attn_triton import flash_attn_qkvpacked_func
 from flash_attn.flash_attn_triton_og import attention as attention_og
-from flash_attn.functional.flash_attn_interface import flash_attn_unpadded_qkvpacked_func
+from flash_attn.functional.flash_attention import flash_attn_unpadded_qkvpacked
 from flash_attn.utils.benchmark import benchmark_all, benchmark_forward, pytorch_profiler
 
 try:
@@ -85,7 +85,7 @@ qkv = torch.randn(batch_size, seqlen, 3, nheads, headdim, device=device, dtype=d
 cu_seqlens = torch.arange(0, (batch_size + 1) * seqlen, step=seqlen, dtype=torch.int32, device=qkv.device)
 
 benchmark_all(
-    flash_attn_unpadded_qkvpacked_func,
+    flash_attn_unpadded_qkvpacked,
     rearrange(qkv, "b s ... -> (b s) ..."),
     cu_seqlens,
     seqlen,

@@ -1,6 +1,7 @@
 # Adapted from https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/fmha.py
+
 import torch
-from torch import nn
+from torch.autograd import Function
 
 import flash_attn_cuda
 
@@ -63,7 +64,7 @@ def _flash_blocksparse_attn_backward(
     return dqkv
 
 
-class FlashBlocksparseAttnFun(torch.autograd.Function):
+class FlashBlocksparseAttnFun(Function):
     @staticmethod
     def forward(ctx, qkv, cu_seqlens, blockmask, dropout_p, max_s, softmax_scale, causal):
         # Save rng_state because the backward pass will regenerate the dropout mask
@@ -107,7 +108,7 @@ class FlashBlocksparseAttnFun(torch.autograd.Function):
 
 # We duplicate code to return both the output and the softmax for testing
 # Returning both makes backward a bit slower, so we want to keep using the other version for speed.
-class FlashBlocksparseAttnFunWithS(torch.autograd.Function):
+class FlashBlocksparseAttnFunWithS(Function):
     @staticmethod
     def forward(ctx, qkv, cu_seqlens, blockmask, dropout_p, max_s, softmax_scale, causal):
         # Save rng_state because the backward pass is gonna regenerate the dropout mask
@@ -148,7 +149,7 @@ class FlashBlocksparseAttnFunWithS(torch.autograd.Function):
         return dqkv, None, None, None, None, None, None
 
 
-def flash_blocksparse_attn_func(
+def flash_blocksparse_attn(
     qkv,
     cu_seqlens,
     blockmask,

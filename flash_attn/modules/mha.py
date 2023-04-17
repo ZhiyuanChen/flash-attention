@@ -9,10 +9,9 @@ from torch import nn
 from torch.nn import functional as F
 
 try:
-    from flash_attn.functional.flash_attn_interface import (flash_attn_unpadded_kvpacked_func,
-                                                            flash_attn_unpadded_qkvpacked_func)
+    from flash_attn.functional.flash_attention import flash_attn_unpadded_kvpacked, flash_attn_unpadded_qkvpacked
 except ImportError:
-    flash_attn_unpadded_qkvpacked_func, flash_attn_unpadded_kvpacked_func = None, None
+    flash_attn_unpadded_qkvpacked, flash_attn_unpadded_kvpacked = None, None
 
 try:
     from flash_attn.functional.flash_attn_triton import flash_attn_kvpacked_func, flash_attn_qkvpacked_func
@@ -20,7 +19,7 @@ except ImportError:
     flash_attn_qkvpacked_func, flash_attn_kvpacked_func = None, None
 
 try:
-    from flash_attn.functional.fused_dense import ColumnParallelLinear, FusedDense, RowParallelLinear
+    from flash_attn.functional.fused_fcn import ColumnParallelLinear, FusedDense, RowParallelLinear
 except ImportError:
     FusedDense, ColumnParallelLinear, RowParallelLinear = None, None, None
 
@@ -49,7 +48,7 @@ class FlashSelfAttention(nn.Module):
     def __init__(self, causal=False, softmax_scale=None, attention_dropout=0.0, triton=False):
         super().__init__()
         if attention_dropout != 0.0 or not triton:
-            assert flash_attn_unpadded_qkvpacked_func is not None, "FlashAttention is not installed"
+            assert flash_attn_unpadded_qkvpacked is not None, "FlashAttention is not installed"
         if attention_dropout == 0.0 and triton:
             assert flash_attn_qkvpacked_func is not None, "FlashAttention Triton is not installed"
         self.causal = causal
@@ -82,7 +81,7 @@ class FlashSelfAttention(nn.Module):
             assert cu_seqlens.dtype == torch.int32
             assert max_seqlen is not None
             assert isinstance(max_seqlen, int)
-            return flash_attn_unpadded_qkvpacked_func(
+            return flash_attn_unpadded_qkvpacked(
                 qkv,
                 cu_seqlens,
                 max_seqlen,
@@ -101,7 +100,7 @@ class FlashSelfAttention(nn.Module):
                 cu_seqlens = torch.arange(
                     0, (batch_size + 1) * seqlen, step=seqlen, dtype=torch.int32, device=qkv.device
                 )
-                output = flash_attn_unpadded_qkvpacked_func(
+                output = flash_attn_unpadded_qkvpacked(
                     qkv,
                     cu_seqlens,
                     max_seqlen,
@@ -127,7 +126,7 @@ class FlashCrossAttention(nn.Module):
     def __init__(self, causal=False, softmax_scale=None, attention_dropout=0.0, triton=False):
         super().__init__()
         if attention_dropout != 0.0 or not triton:
-            assert flash_attn_unpadded_kvpacked_func is not None, "FlashAttention is not installed"
+            assert flash_attn_unpadded_kvpacked is not None, "FlashAttention is not installed"
         if attention_dropout == 0.0 and triton:
             assert flash_attn_kvpacked_func is not None, "FlashAttention Triton is not installed"
         self.causal = causal
@@ -161,7 +160,7 @@ class FlashCrossAttention(nn.Module):
             assert cu_seqlens_k.dtype == torch.int32
             assert max_seqlen_k is not None
             assert isinstance(max_seqlen, int)
-            return flash_attn_unpadded_kvpacked_func(
+            return flash_attn_unpadded_kvpacked(
                 q,
                 kv,
                 cu_seqlens,
@@ -187,7 +186,7 @@ class FlashCrossAttention(nn.Module):
                 cu_seqlens_k = torch.arange(
                     0, (batch_size + 1) * seqlen_k, step=seqlen_k, dtype=torch.int32, device=kv.device
                 )
-                output = flash_attn_unpadded_kvpacked_func(
+                output = flash_attn_unpadded_kvpacked(
                     q,
                     kv,
                     cu_seqlens_q,

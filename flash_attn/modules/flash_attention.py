@@ -5,7 +5,7 @@ from einops import rearrange
 from torch import nn
 
 from flash_attn.functional.bert_padding import pad_input, unpad_input
-from flash_attn.functional.flash_attn_interface import flash_attn_unpadded_qkvpacked_func
+from flash_attn.functional.flash_attention import flash_attn_unpadded_qkvpacked
 
 
 class FlashAttention(nn.Module):
@@ -45,7 +45,7 @@ class FlashAttention(nn.Module):
                 cu_seqlens = torch.arange(
                     0, (batch_size + 1) * seqlen, step=seqlen, dtype=torch.int32, device=qkv.device
                 )
-                output = flash_attn_unpadded_qkvpacked_func(
+                output = flash_attn_unpadded_qkvpacked(
                     qkv,
                     cu_seqlens,
                     max_s,
@@ -59,7 +59,7 @@ class FlashAttention(nn.Module):
                 x = rearrange(qkv, "b s three h d -> b s (three h d)")
                 x_unpad, indices, cu_seqlens, max_s = unpad_input(x, key_padding_mask)
                 x_unpad = rearrange(x_unpad, "nnz (three h d) -> nnz three h d", three=3, h=nheads)
-                output_unpad = flash_attn_unpadded_qkvpacked_func(
+                output_unpad = flash_attn_unpadded_qkvpacked(
                     x_unpad,
                     cu_seqlens,
                     max_s,
@@ -74,7 +74,7 @@ class FlashAttention(nn.Module):
                 )
         else:
             assert max_s is not None
-            output = flash_attn_unpadded_qkvpacked_func(
+            output = flash_attn_unpadded_qkvpacked(
                 qkv,
                 cu_seqlens,
                 max_s,

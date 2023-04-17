@@ -7,7 +7,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from flash_attn.functional.bert_padding import pad_input, unpad_input
-from flash_attn.functional.flash_attn_interface import flash_attn_unpadded_qkvpacked_func
+from flash_attn.functional.flash_attention import flash_attn_unpadded_qkvpacked
 from flash_attn.utils.benchmark import benchmark_all, benchmark_backward, benchmark_combined, benchmark_forward
 
 
@@ -61,7 +61,7 @@ x_unpad, indices, cu_seqlens, max_seqlen_in_batch = unpad_input(x, attention_mas
 qkv_unpad = rearrange(Wqkv(x_unpad), "nnz (t h d) -> nnz t h d", t=3, h=nheads).detach().requires_grad_()
 qkv = rearrange(Wqkv(x), "b s (t h d) -> b s t h d", t=3, h=nheads).detach().requires_grad_()
 
-fn = lambda qkv_unpad: flash_attn_unpadded_qkvpacked_func(
+fn = lambda qkv_unpad: flash_attn_unpadded_qkvpacked(
     qkv_unpad, cu_seqlens, max_seqlen_in_batch, dropout_p, causal=causal
 )
 benchmark_all(fn, qkv_unpad, repeats=repeats, desc="FlashAttention")

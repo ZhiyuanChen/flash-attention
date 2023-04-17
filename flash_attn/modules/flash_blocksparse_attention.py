@@ -6,7 +6,7 @@ from einops import rearrange
 from torch import nn
 
 from flash_attn.functional.bert_padding import index_first_axis, pad_input, unpad_input
-from flash_attn.functional.flash_blocksparse_attn_interface import convert_blockmask, flash_blocksparse_attn_func
+from flash_attn.functional.flash_blocksparse_attention import convert_blockmask, flash_blocksparse_attn
 
 
 class FlashBlocksparseAttention(nn.Module):
@@ -74,7 +74,7 @@ class FlashBlocksparseAttention(nn.Module):
                 cu_seqlens = torch.arange(
                     0, (batch_size + 1) * seqlen, step=seqlen, dtype=torch.int32, device=qkv.device
                 )
-                output = flash_blocksparse_attn_func(
+                output = flash_blocksparse_attn(
                     qkv,
                     cu_seqlens,
                     blockmask,
@@ -90,7 +90,7 @@ class FlashBlocksparseAttention(nn.Module):
                 x = rearrange(qkv, "b s three h d -> b s (three h d)")
                 x_unpad, indices, cu_seqlens, max_s = unpad_input(x, key_padding_mask_bool)
                 x_unpad = rearrange(x_unpad, "nnz (three h d) -> nnz three h d", three=3, h=nheads)
-                output_unpad = flash_blocksparse_attn_func(
+                output_unpad = flash_blocksparse_attn(
                     x_unpad,
                     cu_seqlens,
                     blockmask,
@@ -112,7 +112,7 @@ class FlashBlocksparseAttention(nn.Module):
             assert seqlen_rounded // 16 <= self.layout.shape[0], seqlen_rounded // 256 <= self.layout.shape[1]
             blockmask = self.layout[: seqlen_rounded // 16, : seqlen_rounded // 256]
             if convert_mask:
-                output = flash_blocksparse_attn_func(
+                output = flash_blocksparse_attn(
                     qkv,
                     cu_seqlens,
                     blockmask,
@@ -122,7 +122,7 @@ class FlashBlocksparseAttention(nn.Module):
                     causal=causal,
                 )
             else:
-                output = flash_blocksparse_attn_func(
+                output = flash_blocksparse_attn(
                     qkv,
                     cu_seqlens,
                     self.blockmask_converted,

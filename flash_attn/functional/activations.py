@@ -1,8 +1,7 @@
 # Copied from https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/model/layers/activations.py
-import math
 
 import torch
-from torch import nn
+from torch.autograd import Function
 from torch.nn import functional as F
 
 # 1/sqrt(2*pi)-> 0.3989423
@@ -33,7 +32,7 @@ def bias_gelu_back(g, y, bias):
     return grad_y.to(dtype=y.dtype), grad_y.sum(dim=(0), dtype=bias.dtype)
 
 
-class GeLUFunction(torch.autograd.Function):
+class GeLUFunction(Function):
     @staticmethod
     # bias is an optional argument
     def forward(ctx, input, bias):
@@ -47,7 +46,7 @@ class GeLUFunction(torch.autograd.Function):
         return tmp, tmp
 
 
-bias_gelu_impl = GeLUFunction.apply
+bias_gelu = GeLUFunction.apply
 
 
 # this function is tanh approximation of gelu
@@ -69,7 +68,7 @@ def gelu_bwd(g, x):
     return (ff * g).to(dtype=x.dtype)
 
 
-class FastGeLUFunction(torch.autograd.Function):
+class FastGeLUFunction(Function):
     @staticmethod
     # bias is an optional argument
     def forward(ctx, input):
@@ -83,7 +82,7 @@ class FastGeLUFunction(torch.autograd.Function):
         return tmp
 
 
-fast_gelu_impl = FastGeLUFunction.apply
+fast_gelu = FastGeLUFunction.apply
 
 
 @torch.jit.script

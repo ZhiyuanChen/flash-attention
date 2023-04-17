@@ -7,14 +7,14 @@ from einops import rearrange, repeat
 from torch.nn import functional as F
 
 from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input
-from flash_attn.flash_attn_interface import (_get_block_size, flash_attn_func, flash_attn_unpadded_func,
-                                             flash_attn_unpadded_kvpacked_func, flash_attn_unpadded_qkvpacked_func,
-                                             flash_attn_unpadded_qkvpacked_split_func)
+from flash_attn.flash_attn_interface import (_get_block_size, flash_attn, flash_attn_unpadded,
+                                             flash_attn_unpadded_kvpacked, flash_attn_unpadded_qkvpacked,
+                                             flash_attn_unpadded_qkvpacked_split)
 
 try:
-    from flash_attn.flash_attn_triton import flash_attn_func
+    from flash_attn.flash_attn_triton import flash_attn
 except (ImportError, AttributeError):  # Older version of Triton doesn't have tl.constexpr
-    flash_attn_func = None
+    flash_attn = None
 
 
 is_sm75 = torch.cuda.get_device_capability("cuda") == (7, 5)
@@ -468,7 +468,7 @@ def test_flash_attn_unpadded_qkvpacked(seqlen, d, dropout_p, causal, dtype):
         x, Wqkv, nheads, key_padding_mask, key_padding_mask, qkvpacked=True
     )
 
-    output_unpad, sm_lse, S_dmask = flash_attn_unpadded_qkvpacked_func(
+    output_unpad, sm_lse, S_dmask = flash_attn_unpadded_qkvpacked(
         qkv_unpad, cu_seqlens, max_seqlen, dropout_p, return_attn_probs=True, causal=causal
     )
     output = output_pad_fn(output_unpad)
@@ -574,7 +574,7 @@ def test_flash_attn_unpadded_kvpacked(seqlen, d, dropout_p, causal, dtype):
         dkv_pad_fn,
     ) = generate_qkv(x, Wqkv, nheads, query_padding_mask, key_padding_mask, kvpacked=True)
 
-    output_unpad, sm_lse, S_dmask = flash_attn_unpadded_kvpacked_func(
+    output_unpad, sm_lse, S_dmask = flash_attn_unpadded_kvpacked(
         q_unpad,
         kv_unpad,
         cu_seqlens_q,
@@ -699,7 +699,7 @@ def test_flash_attn_unpadded(seqlen, d, dropout_p, causal, dtype):
         dk_pad_fn,
     ) = generate_qkv(x, Wqkv, nheads, query_padding_mask, key_padding_mask)
 
-    output_unpad, sm_lse, S_dmask = flash_attn_unpadded_func(
+    output_unpad, sm_lse, S_dmask = flash_attn_unpadded(
         q_unpad,
         k_unpad,
         v_unpad,
@@ -826,7 +826,7 @@ def test_flash_attn_split(seqlen, d, dropout_p, causal, dtype):
     )
     max_seqlen1 = 128
 
-    output_unpad, sm_lse, S_dmask0, S_dmask1 = flash_attn_unpadded_qkvpacked_split_func(
+    output_unpad, sm_lse, S_dmask0, S_dmask1 = flash_attn_unpadded_qkvpacked_split(
         qkv_unpad, cu_seqlens, max_seqlen0, max_seqlen1, batch_size0, dropout_p, return_attn_probs=True, causal=causal
     )
     output = output_pad_fn(output_unpad)
@@ -945,7 +945,7 @@ def test_flash_attn_race_condition(seqlen, d, dropout_p, causal, dtype):
     ) = generate_qkv(x, Wqkv, nheads, query_padding_mask, key_padding_mask)
 
     torch.random.manual_seed(0)
-    output_unpad_0, sm_lse_0, S_dmask_0 = flash_attn_unpadded_func(
+    output_unpad_0, sm_lse_0, S_dmask_0 = flash_attn_unpadded(
         q_unpad,
         k_unpad,
         v_unpad,
@@ -976,7 +976,7 @@ def test_flash_attn_race_condition(seqlen, d, dropout_p, causal, dtype):
 
     for _ in range(10):
         torch.random.manual_seed(0)
-        output_unpad, sm_lse, S_dmask = flash_attn_unpadded_func(
+        output_unpad, sm_lse, S_dmask = flash_attn_unpadded(
             q_unpad,
             k_unpad,
             v_unpad,
@@ -1028,7 +1028,7 @@ def test_flash_attn_multigpu():
         x, Wqkv, nheads, key_padding_mask, key_padding_mask, qkvpacked=True
     )
 
-    output_unpad, sm_lse, S_dmask = flash_attn_unpadded_qkvpacked_func(
+    output_unpad, sm_lse, S_dmask = flash_attn_unpadded_qkvpacked(
         qkv_unpad, cu_seqlens, max_seqlen, dropout_p, return_attn_probs=True, causal=causal
     )
     output = output_pad_fn(output_unpad)
@@ -1089,7 +1089,7 @@ def test_flash_attn_multigpu():
     assert (dqkv - dqkv_ref).abs().max().item() <= 2 * (dqkv_pt - dqkv_ref).abs().max().item()
 
 
-@pytest.mark.skipif(flash_attn_func is None, reason="Triton is not installed or is too old")
+@pytest.mark.skipif(flash_attn is None, reason="Triton is not installed or is too old")
 @pytest.mark.skipif(not is_sm80, reason="Triton version is only tested on A100")
 @pytest.mark.parametrize("dtype", ([torch.float16] if is_sm75 else [torch.float16, torch.bfloat16]))
 # @pytest.mark.parametrize('dtype', [torch.bfloat16])
@@ -1137,7 +1137,7 @@ def test_flash_attn_triton_output(seqlen_q, seqlen_k, d, causal, dtype, bias_sha
         bias = None
 
     q, k, v = [x.detach().requires_grad_() for x in [q, k, v]]
-    output = flash_attn_func(q, k, v, bias, causal)
+    output = flash_attn(q, k, v, bias, causal)
 
     output_ref, attn_ref = attention_ref(q, k, v, bias=bias, causal=causal)
     output_pt, attn_pt = attention_ref(q, k, v, bias=bias, causal=causal, upcast=False, reorder_ops=True)
@@ -1181,7 +1181,7 @@ def test_flash_attn_triton_output(seqlen_q, seqlen_k, d, causal, dtype, bias_sha
     assert (dv - dv_ref).abs().max().item() <= 2 * (dv_pt - dv_ref).abs().max().item()
 
 
-@pytest.mark.skipif(flash_attn_func is None, reason="Triton is not installed or is too old")
+@pytest.mark.skipif(flash_attn is None, reason="Triton is not installed or is too old")
 @pytest.mark.skipif(not is_sm80, reason="Triton version is only tested on A100")
 @pytest.mark.parametrize("dtype", ([torch.float16] if is_sm75 else [torch.float16, torch.bfloat16]))
 # @pytest.mark.parametrize('dtype', [torch.bfloat16])
@@ -1229,7 +1229,7 @@ def test_flash_attn_triton_race_condition(seqlen_q, seqlen_k, d, causal, dtype, 
         bias = None
 
     q, k, v = [x.detach().requires_grad_() for x in [q, k, v]]
-    output_0 = flash_attn_func(q, k, v, bias, causal)
+    output_0 = flash_attn(q, k, v, bias, causal)
 
     g = torch.randn_like(output_0)
     dq_0, dk_0, dv_0 = torch.autograd.grad(output_0, (q, k, v), g)
@@ -1241,7 +1241,7 @@ def test_flash_attn_triton_race_condition(seqlen_q, seqlen_k, d, causal, dtype, 
     equal_fn = torch.equal if deterministic_dq else partial(torch.allclose, atol=dq_atol)
     # Run 10000 times and check that the results don't change
     for i in range(10000):
-        output = flash_attn_func(q, k, v, bias, causal)
+        output = flash_attn(q, k, v, bias, causal)
         output_equal = torch.equal(output, output_0)
         if not output_equal:  # Printing / computing diff sometimes makes the race condition disappear
             print(f"{dtype = }, {causal = }, {d = }, {seqlen_q = }, {seqlen_k = }, {bias_shape = }, {i = }")

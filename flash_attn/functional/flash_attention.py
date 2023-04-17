@@ -1,5 +1,5 @@
 import torch
-from torch import nn
+from torch.autograd import Function
 from torch.nn import functional as F
 
 import flash_attn_cuda
@@ -110,7 +110,7 @@ def _flash_attn_backward(
     return dq, dk, dv, softmax_d
 
 
-class FlashAttnQKVPackedFunc(torch.autograd.Function):
+class FlashAttnQKVPackedFn(Function):
     @staticmethod
     def forward(ctx, qkv, cu_seqlens, max_seqlen, dropout_p, softmax_scale, causal, return_softmax, deterministic):
         if softmax_scale is None:
@@ -164,7 +164,7 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
         return dqkv, None, None, None, None, None, None, None
 
 
-class FlashAttnKVPackedFunc(torch.autograd.Function):
+class FlashAttnKVPackedFn(Function):
     @staticmethod
     def forward(
         ctx,
@@ -233,7 +233,7 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
         return dq, dkv, None, None, None, None, None, None, None, None, None
 
 
-class FlashAttnFunc(torch.autograd.Function):
+class FlashAttnFn(Function):
     @staticmethod
     def forward(
         ctx,
@@ -302,7 +302,7 @@ class FlashAttnFunc(torch.autograd.Function):
         return dq, dk, dv, None, None, None, None, None, None, None, None, None
 
 
-class FlashAttnQKVPackedSplitFunc(torch.autograd.Function):
+class FlashAttnQKVPackedSplitFn(Function):
     @staticmethod
     def forward(
         ctx,
@@ -441,7 +441,7 @@ class FlashAttnQKVPackedSplitFunc(torch.autograd.Function):
         return dqkv, None, None, None, None, None, None, None, None, None
 
 
-def flash_attn_unpadded_qkvpacked_func(
+def flash_attn_unpadded_qkvpacked(
     qkv,
     cu_seqlens,
     max_seqlen,
@@ -474,12 +474,12 @@ def flash_attn_unpadded_qkvpacked_func(
             The output of softmax (possibly with different scaling). It also encodes the dropout
             pattern (negative means that location was dropped, nonnegative means it was kept).
     """
-    return FlashAttnQKVPackedFunc.apply(
+    return FlashAttnQKVPackedFn.apply(
         qkv, cu_seqlens, max_seqlen, dropout_p, softmax_scale, causal, return_attn_probs, deterministic
     )
 
 
-def flash_attn_unpadded_kvpacked_func(
+def flash_attn_unpadded_kvpacked(
     q,
     kv,
     cu_seqlens_q,
@@ -519,7 +519,7 @@ def flash_attn_unpadded_kvpacked_func(
             The output of softmax (possibly with different scaling). It also encodes the dropout
             pattern (negative means that location was dropped, nonnegative means it was kept).
     """
-    return FlashAttnKVPackedFunc.apply(
+    return FlashAttnKVPackedFn.apply(
         q,
         kv,
         cu_seqlens_q,
@@ -534,7 +534,7 @@ def flash_attn_unpadded_kvpacked_func(
     )
 
 
-def flash_attn_unpadded_func(
+def flash_attn_unpadded(
     q,
     k,
     v,
@@ -576,7 +576,7 @@ def flash_attn_unpadded_func(
             The output of softmax (possibly with different scaling). It also encodes the dropout
             pattern (negative means that location was dropped, nonnegative means it was kept).
     """
-    return FlashAttnFunc.apply(
+    return FlashAttnFn.apply(
         q,
         k,
         v,
@@ -592,7 +592,7 @@ def flash_attn_unpadded_func(
     )
 
 
-def flash_attn_unpadded_qkvpacked_split_func(
+def flash_attn_unpadded_qkvpacked_split(
     qkv,
     cu_seqlens,
     max_seqlen0,
@@ -635,7 +635,7 @@ def flash_attn_unpadded_qkvpacked_split_func(
             The output of softmax (possibly with different scaling). It also encodes the dropout
             pattern (negative means that location was dropped, nonnegative means it was kept).
     """
-    return FlashAttnQKVPackedSplitFunc.apply(
+    return FlashAttnQKVPackedSplitFn.apply(
         qkv,
         cu_seqlens,
         max_seqlen0,
@@ -649,10 +649,8 @@ def flash_attn_unpadded_qkvpacked_split_func(
     )
 
 
-def flash_attn_func(qkv, cu_seqlens, dropout_p, max_s, softmax_scale=None, causal=False, return_attn_probs=False):
+def flash_attn(qkv, cu_seqlens, dropout_p, max_s, softmax_scale=None, causal=False, return_attn_probs=False):
     """For backward-compatibility only, will remove soon.
     dropout_p should be set to 0.0 during evaluation
     """
-    return flash_attn_unpadded_qkvpacked_func(
-        qkv, cu_seqlens, max_s, dropout_p, softmax_scale, causal, return_attn_probs
-    )
+    return flash_attn_unpadded_qkvpacked(qkv, cu_seqlens, max_s, dropout_p, softmax_scale, causal, return_attn_probs)

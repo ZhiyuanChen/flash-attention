@@ -1,7 +1,8 @@
 from typing import Optional
 
 import torch
-from torch import Tensor
+from torch import Tensor, nn
+from torch.autograd import Function
 from torch.distributed import ProcessGroup
 
 # `all_gather_into_tensor` and `reduce_scatter_tensor` are new placeholders for
@@ -42,7 +43,7 @@ def all_reduce_raw(input_: Tensor, process_group: ProcessGroup, async_op: bool =
     return input_, handle
 
 
-class AllGatherFunc(torch.autograd.Function):
+class AllGatherFunc(Function):
     """Gather the input from sequence parallel region and concatenate."""
 
     @staticmethod
@@ -61,7 +62,7 @@ class AllGatherFunc(torch.autograd.Function):
 all_gather = AllGatherFunc.apply
 
 
-class ReduceScatterFunc(torch.autograd.Function):
+class ReduceScatterFunc(Function):
     """Reduce scatter the input from the sequence parallel region and concatenate."""
 
     @staticmethod
@@ -80,7 +81,7 @@ class ReduceScatterFunc(torch.autograd.Function):
 reduce_scatter = ReduceScatterFunc.apply
 
 
-class AllReduceFunc(torch.autograd.Function):
+class AllReduceFunc(Function):
     """Gather the input from sequence parallel region and concatenate."""
 
     @staticmethod
@@ -98,7 +99,7 @@ class AllReduceFunc(torch.autograd.Function):
 all_reduce = AllReduceFunc.apply
 
 
-def sync_shared_params(model: torch.nn.Module, process_group: ProcessGroup):
+def sync_shared_params(model: nn.Module, process_group: ProcessGroup):
     # We want to iterate over parameters with _shared_params=True in the same order,
     # as different ranks might have different number of parameters (e.g., only rank 0 has bias).
     pamams_shared = {name: p for name, p in model.named_parameters() if getattr(p, "_shared_params", False)}
@@ -109,7 +110,7 @@ def sync_shared_params(model: torch.nn.Module, process_group: ProcessGroup):
 
 
 # Ref: https://github.com/NVIDIA/Megatron-LM/blob/52e636888cccc41e931251c417a7181fc36de926/megatron/optimizer/optimizer.py#L256
-def allreduce_sequence_parallel_grad(model: torch.nn.Module, process_group: ProcessGroup):
+def allreduce_sequence_parallel_grad(model: nn.Module, process_group: ProcessGroup):
     # We want to iterate over parameters with _sequence_parallel=True in the same order,
     # as different ranks might have different number of parameters (e.g., only rank 0 has bias).
     params_seqparallel = {name: p for name, p in model.named_parameters() if getattr(p, "_sequence_parallel", False)}

@@ -123,11 +123,11 @@ flash_attention = FlashAttention()
 Or, if you need more fine-grained control, you can import one of the lower-level
 functions (this is more similar to the `torch.nn.functional` style):
 ```python
-from flash_attn.flash_attn_interface import flash_attn_unpadded_func
+from flash_attn.flash_attn_interface import flash_attn_unpadded
 
 # or
 
-from flash_attn.flash_attn_interface import flash_attn_unpadded_qkvpacked_split_func
+from flash_attn.flash_attn_interface import flash_attn_unpadded_qkvpacked_split
 
 # etc.
 ```
@@ -135,13 +135,13 @@ from flash_attn.flash_attn_interface import flash_attn_unpadded_qkvpacked_split_
 There are also separate Python files with various FlashAttention extensions:
 ```python
 # Import the triton implementation (torch.nn.functional version only)
-from flash_attn.flash_attn_triton import flash_attn_func
+from flash_attn.flash_attn_triton import flash_attn
 
 # Import block sparse attention (nn.Module version)
 from flash_attn.flash_blocksparse_attention import FlashBlocksparseMHA, FlashBlocksparseAttention
 
 # Import block sparse attention (torch.nn.functional version)
-from flash_attn.flash_blocksparse_attn_interface import flash_blocksparse_attn_func
+from flash_attn.flash_blocksparse_attn_interface import flash_blocksparse_attn
 ```
 
 ## Speedup and Memory Savings

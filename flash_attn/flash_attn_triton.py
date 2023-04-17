@@ -44,6 +44,7 @@ import math
 import torch
 import triton
 import triton.language as tl
+from torch.autograd import Function
 
 
 # Disabling autotune for now, set num_warps=4 if headdim=64 and num_warps=8 if headdim=128
@@ -936,7 +937,7 @@ def _flash_attn_backward(do, q, k, v, o, lse, dq, dk, dv, bias=None, causal=Fals
     dq.copy_(dq_accum)
 
 
-class FlashAttnQKVPackedFunc(torch.autograd.Function):
+class FlashAttnQKVPackedFn(Function):
     @staticmethod
     def forward(ctx, qkv, bias=None, causal=False, softmax_scale=None):
         """
@@ -980,10 +981,10 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
         return dqkv, None, None, None
 
 
-flash_attn_qkvpacked_func = FlashAttnQKVPackedFunc.apply
+flash_attn_qkvpacked_func = FlashAttnQKVPackedFn.apply
 
 
-class FlashAttnKVPackedFunc(torch.autograd.Function):
+class FlashAttnKVPackedFn(Function):
     @staticmethod
     def forward(ctx, q, kv, bias=None, causal=False, softmax_scale=None):
         """
@@ -1029,10 +1030,10 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
         return dq, dkv, None, None, None
 
 
-flash_attn_kvpacked_func = FlashAttnKVPackedFunc.apply
+flash_attn_kvpacked_func = FlashAttnKVPackedFn.apply
 
 
-class FlashAttnFunc(torch.autograd.Function):
+class FlashAttnFn(Function):
     @staticmethod
     def forward(ctx, q, k, v, bias=None, causal=False, softmax_scale=None):
         """
@@ -1065,4 +1066,4 @@ class FlashAttnFunc(torch.autograd.Function):
         return dq, dk, dv, None, None, None
 
 
-flash_attn_func = FlashAttnFunc.apply
+flash_attn = FlashAttnFn.apply

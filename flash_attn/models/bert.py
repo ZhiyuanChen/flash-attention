@@ -27,7 +27,7 @@ from flash_attn.modules.mlp import FusedMLP, Mlp
 from flash_attn.utils.pretrained import state_dict_from_pretrained
 
 try:
-    from flash_attn.functional.fused_dense import FusedDense
+    from flash_attn.functional.fused_fcn import FusedDense
 except ImportError:
     FusedDense = None
 

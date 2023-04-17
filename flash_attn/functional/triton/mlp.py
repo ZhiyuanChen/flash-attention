@@ -3,6 +3,7 @@
 import fused_dense_lib as fused_dense_cuda
 import torch
 from torch import nn
+from torch.autograd import Function
 from torch.cuda.amp import custom_bwd, custom_fwd
 from torch.nn import functional as F
 
@@ -10,7 +11,7 @@ from flash_attn.functional.activations import sqrelu_bwd, sqrelu_fwd
 from flash_attn.functional.triton.linear import triton_dgrad_act, triton_linear_act
 
 
-class FusedDenseSqreluDenseFunc(torch.autograd.Function):
+class FusedDenseSqreluDenseFn(Function):
     @staticmethod
     @custom_fwd
     def forward(ctx, x, weight1, bias1, weight2, bias2, checkpoint_lvl=0):
@@ -94,7 +95,7 @@ class FusedDenseSqreluDenseFunc(torch.autograd.Function):
         return grad_input.reshape_as(x), grad_weight1, grad_bias1, grad_weight2, grad_bias2, None
 
 
-fused_dense_sqrelu_dense_function = FusedDenseSqreluDenseFunc.apply
+fused_dense_sqrelu_dense_function = FusedDenseSqreluDenseFn.apply
 
 
 class FusedDenseSqreluDense(nn.Module):
