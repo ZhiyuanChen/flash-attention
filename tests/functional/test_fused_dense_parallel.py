@@ -6,6 +6,7 @@ import math
 import pytest
 import torch
 from apex.transformer import parallel_state, tensor_parallel
+from torch import distributed as dist
 from torch.nn import functional as F
 
 from flash_attn.ops.fused_dense import ColumnParallelLinear, FusedDense, FusedMLP, ParallelFusedMLP
@@ -26,10 +27,10 @@ is_sm8x = torch.cuda.get_device_capability("cuda")[0] >= 8
 def test_fused_linear_bias(in_features, out_features, has_bias, sequence_parallel, world_size, dtype):
     assert out_features % world_size == 0
     rtol, atol = (3e-3, 3e-2) if dtype == torch.bfloat16 else (3e-3, 3e-3)
-    if not torch.distributed.is_initialized():
-        torch.distributed.init_process_group(backend="nccl", init_method="env://")
-    device = f"cuda:{torch.distributed.get_rank()}"
-    assert world_size <= torch.distributed.get_world_size()
+    if not dist.is_initialized():
+        dist.init_process_group(backend="nccl", init_method="env://")
+    device = f"cuda:{dist.get_rank()}"
+    assert world_size <= dist.get_world_size()
     parallel_state.initialize_model_parallel(tensor_model_parallel_size_=world_size)
     rank = parallel_state.get_tensor_model_parallel_rank()
     # set seed
@@ -107,10 +108,10 @@ def test_fused_linear_bias(in_features, out_features, has_bias, sequence_paralle
 def test_fused_mlp(in_features, out_features, has_bias2, sequence_parallel, world_size, dtype):
     assert out_features % world_size == 0
     rtol, atol = (3e-3, 3e-2) if dtype == torch.bfloat16 else (3e-3, 3e-3)
-    if not torch.distributed.is_initialized():
-        torch.distributed.init_process_group(backend="nccl", init_method="env://")
-    device = f"cuda:{torch.distributed.get_rank()}"
-    assert world_size <= torch.distributed.get_world_size()
+    if not dist.is_initialized():
+        dist.init_process_group(backend="nccl", init_method="env://")
+    device = f"cuda:{dist.get_rank()}"
+    assert world_size <= dist.get_world_size()
     parallel_state.initialize_model_parallel(tensor_model_parallel_size_=world_size)
     rank = parallel_state.get_tensor_model_parallel_rank()
     # set seed

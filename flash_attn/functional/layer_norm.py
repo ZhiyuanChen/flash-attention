@@ -10,6 +10,7 @@ try:
 except ImportError:
     dropout_layer_norm = None
 
+
 def _dropout_add_layer_norm_forward(
     x0, residual, gamma, beta, rowscale, colscale, dropout_p, epsilon, residual_in_fp32=False, is_rms_norm=False
 ):

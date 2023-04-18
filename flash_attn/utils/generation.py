@@ -9,6 +9,7 @@ from typing import Callable, Optional, Sequence, Union
 import torch
 from einops import rearrange
 from torch import Tensor
+from torch import distributed as dist
 from torch.profiler import ProfilerActivity, profile, record_function
 from transformers.generation import GreedySearchDecoderOnlyOutput, SampleDecoderOnlyOutput
 
@@ -119,7 +120,7 @@ def decode(
     with torch.inference_mode():
         if timing:
             if tensor_parallel > 1:
-                torch.distributed.barrier()
+                dist.barrier()
             torch.cuda.synchronize()
             start = time.time()
         logits = model(input_ids, inference_params=inference_params).logits[:, -1]
@@ -159,7 +160,7 @@ def decode(
                 break
         if timing:
             if tensor_parallel > 1:
-                torch.distributed.barrier()
+                dist.barrier()
             torch.cuda.synchronize()
             print(f"Prompt processing + decoding time: {(time.time() - start) * 1000:.0f}ms")
     output_cls = GreedySearchDecoderOnlyOutput if top_k == 1 else SampleDecoderOnlyOutput
@@ -303,8 +304,8 @@ def capture_graph(model, inference_params, batch_size, max_seqlen, mempool=None,
         # This might be needed for correctness if we run with NCCL_GRAPH_MIXING_SUPPORT=0,
         # which requires that graph launch and non-captured launch to not overlap (I think,
         # that's how I interpret the documentation). I'm not sure if this is required.
-        if torch.distributed.is_initialized():
-            torch.distributed.barrier()
+        if dist.is_initialized():
+            dist.barrier()
     torch.cuda.current_stream().wait_stream(s)
     # Captures the graph
     # To allow capture, automatically sets a side stream as the current stream in the context

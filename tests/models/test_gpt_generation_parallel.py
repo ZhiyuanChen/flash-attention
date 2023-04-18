@@ -6,6 +6,7 @@ import re
 import pytest
 import torch
 from einops import rearrange
+from torch import distributed as dist
 from transformers import GPT2Config, GPT2Tokenizer
 from transformers.models.gpt2.modeling_gpt2 import GPT2LMHeadModel as GPT2LMHeadModelHF
 
@@ -41,10 +42,10 @@ def test_tensor_parallel(model_name, rotary, fused_ft_kernel, world_size):
     config.sequence_parallel = False  # Need to set this to False for generation
 
     os.environ["NCCL_ASYNC_ERROR_HANDLING"] = "0"
-    if not torch.distributed.is_initialized():
-        torch.distributed.init_process_group(backend="nccl", init_method="env://")
-    device = f"cuda:{torch.distributed.get_rank()}"
-    assert world_size <= torch.distributed.get_world_size()
+    if not dist.is_initialized():
+        dist.init_process_group(backend="nccl", init_method="env://")
+    device = f"cuda:{dist.get_rank()}"
+    assert world_size <= dist.get_world_size()
     # Need this, otherwise when we capture the graph the process for GPU 1 would run on both
     # GPU0 and GPU1 and things would hang
     torch.cuda.set_device(device)

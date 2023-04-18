@@ -6,6 +6,7 @@ import math
 import pytest
 import torch
 from apex.transformer import parallel_state, tensor_parallel
+from torch import distributed as dist
 from torch.nn import functional as F
 
 from flash_attn.modules import CrossEntropyLoss
@@ -25,11 +26,11 @@ is_sm8x = torch.cuda.get_device_capability("cuda")[0] >= 8
 def test_cross_entropy_loss_parallel(vocab_size, world_size, smoothing, inplace_backward, dtype):
     assert vocab_size % world_size == 0
     rtol, atol = (1e-5, 1e-6) if dtype == torch.float32 else ((1e-3, 1e-4) if dtype == torch.float16 else (1e-2, 3e-3))
-    if not torch.distributed.is_initialized():
-        torch.distributed.init_process_group(backend="nccl", init_method="env://")
+    if not dist.is_initialized():
+        dist.init_process_group(backend="nccl", init_method="env://")
     partition_vocab_size = vocab_size // world_size
-    device = f"cuda:{torch.distributed.get_rank()}"
-    assert world_size <= torch.distributed.get_world_size()
+    device = f"cuda:{dist.get_rank()}"
+    assert world_size <= dist.get_world_size()
     parallel_state.initialize_model_parallel(tensor_model_parallel_size_=world_size)
     rank = parallel_state.get_tensor_model_parallel_rank()
     # set seed

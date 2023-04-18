@@ -9,18 +9,20 @@ from typing import Optional
 # import fused_dense_cuda  # from apex
 import torch
 from torch import Tensor
+from torch import distributed as dist
 from torch.autograd import Function
 from torch.cuda.amp import custom_bwd, custom_fwd
-from torch.distributed import ProcessGroup
 from torch.nn import functional as F
 
-from .activations import gelu_bwd, relu_bwd, sqrelu_bwd, sqrelu_fwd
 from flash_attn.utils.distributed import all_gather_raw, all_reduce_raw, reduce_scatter_raw
+
+from .activations import gelu_bwd, relu_bwd, sqrelu_bwd, sqrelu_fwd
 
 try:
     import fused_dense_lib as fused_dense_cuda
 except ImportError:
     fused_dense_cuda = None
+
 
 class FusedDenseFunc(Function):
     @staticmethod
@@ -114,7 +116,7 @@ def fused_dense(
     weight: Tensor,
     bias: Optional[Tensor] = None,
     return_residual: bool = False,
-    process_group: Optional[ProcessGroup] = None,
+    process_group: Optional[dist.ProcessGroup] = None,
     sequence_parallel: bool = True,
 ):
     dtype_eligible = x.dtype in [torch.float16, torch.bfloat16] or (
@@ -355,7 +357,7 @@ def fused_mlp(
     return_residual: bool = False,
     checkpoint_lvl: int = 0,
     heuristic: int = 0,
-    process_group: Optional[ProcessGroup] = None,
+    process_group: Optional[dist.ProcessGroup] = None,
     sequence_parallel: bool = True,
 ):
     assert activation in ["gelu_approx", "relu", "sqrelu"]

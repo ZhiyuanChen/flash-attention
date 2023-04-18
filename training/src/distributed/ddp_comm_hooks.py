@@ -3,7 +3,7 @@
 from typing import Any, Callable
 
 import torch
-import torch.distributed as dist
+from torch import distributed as dist
 
 
 def fp16_compress_hook(process_group: dist.ProcessGroup, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor]:

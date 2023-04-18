@@ -7,6 +7,7 @@ import pytest
 import torch
 from apex.transformer import parallel_state
 from einops import rearrange
+from torch import distributed as dist
 from torch import nn
 from torch.nn import functional as F
 from transformers import GPT2Config
@@ -36,10 +37,10 @@ def test_gpt_parallel(dim, has_pos_emb, sequence_parallel, world_size, dtype):
     assert vocab_size % world_size == 0
     num_layers = 2
     rtol, atol = (3e-3, 1e-1) if dtype == torch.bfloat16 else (3e-3, 1e-2)
-    if not torch.distributed.is_initialized():
-        torch.distributed.init_process_group(backend="nccl", init_method="env://")
-    device = f"cuda:{torch.distributed.get_rank()}"
-    assert world_size <= torch.distributed.get_world_size()
+    if not dist.is_initialized():
+        dist.init_process_group(backend="nccl", init_method="env://")
+    device = f"cuda:{dist.get_rank()}"
+    assert world_size <= dist.get_world_size()
     parallel_state.initialize_model_parallel(tensor_model_parallel_size_=world_size)
     rank = parallel_state.get_tensor_model_parallel_rank()
     process_group = parallel_state.get_tensor_model_parallel_group()
@@ -87,14 +88,12 @@ def test_gpt_parallel(dim, has_pos_emb, sequence_parallel, world_size, dtype):
     total_nparams = sum(p.numel() for p in model_pt.parameters())
     sharded_nparams = sum(p.numel() for p in model.parameters())
     sharded_nparams_all = torch.empty(world_size, dtype=torch.long, device=device)
-    torch.distributed.all_gather_into_tensor(
+    dist.all_gather_into_tensor(
         sharded_nparams_all, torch.tensor([sharded_nparams], device=device), group=process_group
     )
     shared_nparams = sum(p.numel() for p in model.parameters() if getattr(p, "_shared_params", False))
     shared_nparams_all = torch.empty(world_size, dtype=torch.long, device=device)
-    torch.distributed.all_gather_into_tensor(
-        shared_nparams_all, torch.tensor([shared_nparams], device=device), group=process_group
-    )
+    dist.all_gather_into_tensor(shared_nparams_all, torch.tensor([shared_nparams], device=device), group=process_group)
     assert torch.all(shared_nparams_all == shared_nparams)
     assert total_nparams == ((sharded_nparams_all - shared_nparams_all).sum().item() + shared_nparams)
 

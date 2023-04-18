@@ -8,6 +8,7 @@ import pytest
 import torch
 from apex.transformer import parallel_state, tensor_parallel
 from einops import rearrange
+from torch import distributed as dist
 from torch import nn
 from torch.nn import functional as F
 
@@ -30,10 +31,10 @@ def test_block_parallel(dim, sequence_parallel, world_size, dtype):
     num_heads = dim // head_dim
     assert num_heads % world_size == 0
     rtol, atol = (3e-3, 5e-2) if dtype == torch.bfloat16 else (3e-3, 3e-3)
-    if not torch.distributed.is_initialized():
-        torch.distributed.init_process_group(backend="nccl", init_method="env://")
-    device = f"cuda:{torch.distributed.get_rank()}"
-    assert world_size <= torch.distributed.get_world_size()
+    if not dist.is_initialized():
+        dist.init_process_group(backend="nccl", init_method="env://")
+    device = f"cuda:{dist.get_rank()}"
+    assert world_size <= dist.get_world_size()
     parallel_state.initialize_model_parallel(tensor_model_parallel_size_=world_size)
     rank = parallel_state.get_tensor_model_parallel_rank()
     # set seed

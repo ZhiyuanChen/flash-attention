@@ -11,7 +11,7 @@ except ImportError:
 # `_all_gather_base` and `_reduce_scatter_base`. They require the most recent
 # version of PyTorch. The following 2 lines are for backward compatibility with
 # older PyTorch.
-if "all_gather_into_tensor" not in dir(torch.distributed):
+if "all_gather_into_tensor" not in dir(dist):
     dist.all_gather_into_tensor = dist._all_gather_base
 
 

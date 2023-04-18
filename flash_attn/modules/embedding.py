@@ -2,7 +2,9 @@
 
 import torch
 from einops import rearrange
-from torch import Tensor, _assert, nn
+from torch import Tensor, _assert
+from torch import distributed as dist
+from torch import nn
 from torch.nn.modules.utils import _pair
 
 from flash_attn.utils.distributed import all_reduce, reduce_scatter
@@ -112,7 +114,7 @@ class VocabParallelEmbedding(nn.Embedding):
     def __init__(self, num_embeddings, *args, process_group=None, padding_idx=None, **kwargs):
         self.process_group = process_group
         if process_group is not None:
-            world_size = torch.distributed.get_world_size(process_group)
+            world_size = dist.get_world_size(process_group)
             if num_embeddings % world_size != 0:
                 raise ValueError(
                     f"num_embeddings ({num_embeddings}) must be divisible by " f"world_size ({world_size})"
@@ -127,7 +129,7 @@ class VocabParallelEmbedding(nn.Embedding):
         if self.process_group is None:
             return super().forward(input)
         else:
-            rank = torch.distributed.get_rank(self.process_group)
+            rank = dist.get_rank(self.process_group)
             vocab_size = self.num_embeddings
             vocab_start_index, vocab_end_index = rank * vocab_size, (rank + 1) * vocab_size
             # Create a mask of valid vocab ids (1 means it needs to be masked).
@@ -143,7 +145,7 @@ class ColumnParallelEmbedding(nn.Embedding):
     def __init__(self, num_embeddings, embedding_dim, *args, process_group=None, **kwargs):
         self.process_group = process_group
         if process_group is not None:
-            world_size = torch.distributed.get_world_size(process_group)
+            world_size = dist.get_world_size(process_group)
             if embedding_dim % world_size != 0:
                 raise ValueError(f"embedding_dim ({embedding_dim}) must be divisible by " f"world_size ({world_size})")
         else:
@@ -185,7 +187,7 @@ class ParallelGPT2Embeddings(nn.Module):
         position_ids: (batch, seqlen)
         """
         batch_size, seqlen = input_ids.shape
-        world_size = torch.distributed.get_world_size(self.process_group)
+        world_size = dist.get_world_size(self.process_group)
         embeddings = self.word_embeddings(input_ids)
         if self.max_position_embeddings > 0:
             if position_ids is None:
@@ -195,7 +197,7 @@ class ParallelGPT2Embeddings(nn.Module):
                 embeddings = embeddings + position_embeddings
             else:
                 partition_dim = self.position_embeddings.embedding_dim
-                rank = torch.distributed.get_rank(self.process_group)
+                rank = dist.get_rank(self.process_group)
                 embeddings[..., rank * partition_dim : (rank + 1) * partition_dim] += position_embeddings
         if combine_batch_seqlen_dim:
             embeddings = rearrange(embeddings, "b s d -> (b s) d")

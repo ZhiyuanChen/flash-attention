@@ -8,8 +8,8 @@ from torch import Tensor, nn
 from torch.nn import functional as F
 from torchvision.ops import StochasticDepth
 
-from .flash_attention import MHA
 from .fcn import MLP
+from .flash_attention import MHA
 
 try:
     from flash_attn.functional import dropout_add_layer_norm
