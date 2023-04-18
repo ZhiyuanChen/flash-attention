@@ -981,7 +981,7 @@ class FlashAttnQKVPackedFn(Function):
         return dqkv, None, None, None
 
 
-flash_attn_qkvpacked_func = FlashAttnQKVPackedFn.apply
+flash_attn_qkvpacked = FlashAttnQKVPackedFn.apply
 
 
 class FlashAttnKVPackedFn(Function):
@@ -1030,7 +1030,7 @@ class FlashAttnKVPackedFn(Function):
         return dq, dkv, None, None, None
 
 
-flash_attn_kvpacked_func = FlashAttnKVPackedFn.apply
+flash_attn_kvpacked = FlashAttnKVPackedFn.apply
 
 
 class FlashAttnFn(Function):

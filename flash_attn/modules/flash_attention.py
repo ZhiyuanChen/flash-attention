@@ -1,10 +1,37 @@
 import math
+from functools import partial
 
 import torch
 from einops import rearrange
 from torch import nn
+from torch.nn import functional as F
 
 from flash_attn.functional import flash_attn_unpadded_qkvpacked, pad_input, unpad_input
+
+try:
+    from flash_attn.functional import flash_attn_unpadded_kvpacked, flash_attn_unpadded_qkvpacked
+except ImportError:
+    flash_attn_unpadded_qkvpacked, flash_attn_unpadded_kvpacked = None, None
+
+try:
+    from flash_attn.functional.triton import flash_attn_kvpacked, flash_attn_qkvpacked
+except ImportError:
+    flash_attn_qkvpacked, flash_attn_kvpacked = None, None
+
+try:
+    from .fcn import ColumnParallelLinear, FusedDense, RowParallelLinear
+except ImportError:
+    FusedDense, ColumnParallelLinear, RowParallelLinear = None, None, None
+
+try:
+    from .embedding import RotaryEmbedding
+except ImportError:
+    RotaryEmbedding = None
+
+try:
+    import ft_attention
+except ImportError:
+    ft_attention = None
 
 
 class FlashAttention(nn.Module):
@@ -124,42 +151,6 @@ class FlashMHA(nn.Module):
         return self.out_proj(rearrange(context, "b s h d -> b s (h d)")), attn_weights
 
 
-# Copyright (c) 2022, Tri Dao.
-
-import math
-from functools import partial
-
-import torch
-from einops import rearrange
-from torch import nn
-from torch.nn import functional as F
-
-try:
-    from flash_attn.functional import flash_attn_unpadded_kvpacked, flash_attn_unpadded_qkvpacked
-except ImportError:
-    flash_attn_unpadded_qkvpacked, flash_attn_unpadded_kvpacked = None, None
-
-try:
-    from flash_attn.functional import flash_attn_kvpacked_func, flash_attn_qkvpacked_func
-except ImportError:
-    flash_attn_qkvpacked_func, flash_attn_kvpacked_func = None, None
-
-try:
-    from flash_attn.functional import ColumnParallelLinear, FusedDense, RowParallelLinear
-except ImportError:
-    FusedDense, ColumnParallelLinear, RowParallelLinear = None, None, None
-
-try:
-    from flash_attn.layers.rotary import RotaryEmbedding
-except ImportError:
-    RotaryEmbedding = None
-
-try:
-    import ft_attention
-except ImportError:
-    ft_attention = None
-
-
 class FlashSelfAttention(nn.Module):
     """Implement the scaled dot product attention with softmax.
     Arguments
@@ -176,7 +167,7 @@ class FlashSelfAttention(nn.Module):
         if attention_dropout != 0.0 or not triton:
             assert flash_attn_unpadded_qkvpacked is not None, "FlashAttention is not installed"
         if attention_dropout == 0.0 and triton:
-            assert flash_attn_qkvpacked_func is not None, "FlashAttention Triton is not installed"
+            assert flash_attn_qkvpacked is not None, "FlashAttention Triton is not installed"
         self.causal = causal
         self.softmax_scale = softmax_scale
         self.dropout_p = attention_dropout
@@ -219,7 +210,7 @@ class FlashSelfAttention(nn.Module):
             batch_size, seqlen = qkv.shape[0], qkv.shape[1]
             # Triton version doesn't support dropout
             if self.triton and (self.dropout_p == 0 or not self.training):
-                output = flash_attn_qkvpacked_func(qkv, None, causal, self.softmax_scale)
+                output = flash_attn_qkvpacked(qkv, None, causal, self.softmax_scale)
             else:
                 qkv = rearrange(qkv, "b s ... -> (b s) ...")
                 max_seqlen = seqlen
@@ -254,7 +245,7 @@ class FlashCrossAttention(nn.Module):
         if attention_dropout != 0.0 or not triton:
             assert flash_attn_unpadded_kvpacked is not None, "FlashAttention is not installed"
         if attention_dropout == 0.0 and triton:
-            assert flash_attn_kvpacked_func is not None, "FlashAttention Triton is not installed"
+            assert flash_attn_kvpacked is not None, "FlashAttention Triton is not installed"
         self.causal = causal
         self.softmax_scale = softmax_scale
         self.dropout_p = attention_dropout
@@ -302,7 +293,7 @@ class FlashCrossAttention(nn.Module):
             seqlen_k = kv.shape[1]
             assert kv.shape[0] == batch_size and kv.shape[3] == q.shape[2] and kv.shape[4] == q.shape[3]
             if self.triton and (self.dropout_p == 0.0 or not self.training):  # Triton version doesn't support dropout
-                output = flash_attn_kvpacked_func(q, kv, None, causal, self.softmax_scale)
+                output = flash_attn_kvpacked(q, kv, None, causal, self.softmax_scale)
             else:
                 q = rearrange(q, "b s ... -> (b s) ...")
                 kv = rearrange(kv, "b s ... -> (b s) ...")

@@ -71,9 +71,9 @@ class FusedScaleMaskSoftmax(nn.Module):
 
         if self.scaled_masked_softmax_fusion:
             if self.attn_mask_type == AttnMaskType.causal:
-                self.fused_softmax_func = scaled_upper_triang_masked_softmax
+                self.fused_softmax = scaled_upper_triang_masked_softmax
             elif self.attn_mask_type == AttnMaskType.padding:
-                self.fused_softmax_func = scaled_masked_softmax
+                self.fused_softmax = scaled_masked_softmax
             else:
                 raise ValueError("Invalid attn_mask_type.")
 
@@ -115,7 +115,7 @@ class FusedScaleMaskSoftmax(nn.Module):
     def forward_fused_softmax(self, input, mask):
         # input.shape = [b, np, sq, sk]
         scale = self.scale if self.scale is not None else 1.0
-        return self.fused_softmax_func(input, mask, scale)
+        return self.fused_softmax(input, mask, scale)
 
     def forward_torch_softmax(self, input, mask):
         if self.input_in_float16 and self.softmax_in_fp32:
